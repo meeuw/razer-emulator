@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "razer-emulator"
+version = "0.1.0"
+description = "Razer Emulator"
+authors = ["Dick Marinus <dick@mrns.nl>"]
+license = "GPL-2"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+functionfs = "^0.9.0"
+toml = "^0.10.2"
+
+[tool.poetry.dev-dependencies]
+black = "^22.6.0"
+pylint = "^2.15.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+razer-emulator = 'razer_emulator.device:main'

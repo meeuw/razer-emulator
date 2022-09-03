@@ -1,0 +1,498 @@
+[[razer]]
+idVendor="1532"
+manufacturer="Razer"
+
+[[razer.kbd]]
+# Fake serial
+serial="PM2201F66644064"
+
+# The HID descriptors can be obtained by (in reverse order!):
+# usbhid-dump -m 1532:0282 -ea
+
+# The other parameters: protocol, is_boot_device and in_report_max_length
+# can be found in the output from lsusb -v
+
+[[razer.kbd.interface_at_1]]
+# HID decriptor from Razer Blade 17
+descriptor0 = '''
+05 01 09 06 A1 01 05 07 19 E0 29 E7 15 00 25 01
+75 01 95 08 81 02 81 01 19 00 2A FF 00 15 00 26
+FF 00 75 08 95 06 81 00 05 08 19 01 29 03 15 00
+25 01 75 01 95 03 91 02 95 05 91 01 C0
+'''
+protocol0 = "keyboard"
+is_boot_device0 = true
+in_report_max_length0 = 8
+
+descriptor1 = '''
+05 01 09 06 A1 01 85 01 05 07 19 E0 29 E7 15 00
+25 01 75 01 95 08 81 02 19 00 2A FF 00 15 00 26
+FF 00 75 08 95 0E 81 00 C0 05 0C 09 01 A1 01 85
+02 19 00 2A 3C 02 15 00 26 3C 02 95 01 75 10 81
+00 75 08 95 0D 81 01 C0 05 01 09 80 A1 01 85 03
+19 81 29 83 15 00 25 01 75 01 95 03 81 02 95 05
+81 01 75 08 95 0E 81 01 C0 05 01 09 00 A1 01 85
+04 09 03 15 00 26 FF 00 35 00 46 FF 00 75 08 95
+0F 81 00 C0 05 01 09 00 A1 01 85 05 09 03 15 00
+26 FF 00 35 00 46 FF 00 75 08 95 0F 81 00 C0
+'''
+protocol1 = "keyboard"
+is_boot_device1 = false
+in_report_max_length1 = 16
+
+descriptor2 = '''
+05 01 09 02 A1 01 09 01 A1 00 05 09 19 01 29 05
+15 00 25 01 75 01 95 05 81 02 75 01 95 03 81 03
+06 00 FF 09 40 75 08 95 02 15 81 25 7F 81 02 05
+01 09 38 15 81 25 7F 75 08 95 01 81 06 09 30 09
+31 16 00 80 26 FF 7F 75 10 95 02 81 06 C0 06 00
+FF 09 02 15 00 25 01 75 08 95 5A B1 01 C0
+'''
+protocol2 = "mouse"
+is_boot_device2 = false
+in_report_max_length2 = 8
+
+[[razer.kbd.interface_at_2]]
+# HID decriptor frankensteined together from Razer Huntsman Mini Analog
+descriptor0 = '''
+05 01 09 06 A1 01 05 07 19 E0 29 E7 15 00 25 01
+75 01 95 08 81 02 81 01 19 00 2A FF 00 15 00 26
+FF 00 75 08 95 06 81 00 05 08 19 01 29 03 15 00
+25 01 75 01 95 03 91 02 95 05 91 01 C0
+'''
+protocol0 = "keyboard"
+is_boot_device0 = true
+in_report_max_length0 = 8
+
+descriptor1 = '''
+05 01 09 06 A1 01 85 01 05 07 05 07 19 E0 29 E7
+15 00 25 01 75 01 95 08 81 02 19 00 29 A0 15 00
+25 01 75 01 95 A0 81 02 75 08 95 02 81 01 05 08
+19 01 29 03 15 00 25 01 75 01 95 03 91 02 95 05
+91 01 C0 05 0C 09 01 A1 01 85 02 19 00 2A 3C 02
+15 00 26 3C 02 95 01 75 10 81 00 75 08 95 15 81
+01 C0 05 01 09 80 A1 01 85 03 19 81 29 83 15 00
+25 01 75 01 95 03 81 02 95 05 81 01 75 08 95 16
+81 01 C0 05 01 09 00 A1 01 85 04 09 03 15 00 26
+FF 00 35 00 46 FF 00 75 08 95 17 81 00 C0 05 01
+09 00 A1 01 85 05 09 03 15 00 26 FF 00 35 00 46
+FF 00 75 08 95 17 81 00 C0 05 01 09 00 A1 01 85
+07 09 03 15 00 26 FF 00 35 00 46 FF 00 75 08 95
+17 81 00 C0
+'''
+protocol1 = "keyboard"
+is_boot_device1 = false
+in_report_max_length1 = 22
+
+descriptor2 = '''
+05 01 09 02 A1 01 09 01 A1 00 05 09 19 01 29 05
+15 00 25 01 75 01 95 05 81 02 75 01 95 03 81 03
+06 00 FF 09 40 75 08 95 02 15 81 25 7F 81 02 05
+01 09 38 15 81 25 7F 75 08 95 01 81 06 09 30 09
+31 16 00 80 26 FF 7F 75 10 95 02 81 06 C0 A1 01
+06 00 FF 09 02 15 00 25 01 75 08 95 5A B1 01 C0
+C0
+'''
+protocol2 = "mouse"
+is_boot_device2 = false
+in_report_max_length2 = 8
+
+descriptor3 = '''
+05 59 09 01 A1 01 85 01 09 02 A1 02 09 03 15 00
+27 FF FF 00 00 75 10 95 01 B1 03 09 04 09 05 09
+06 09 07 09 08 15 00 27 FF FF FF 7F 75 20 95 05
+B1 03 C0 85 02 09 20 A1 02 09 21 15 00 27 FF FF
+00 00 75 10 95 01 B1 02 C0 85 03 09 22 A1 02 09
+21 15 00 27 FF FF 00 00 75 10 95 01 B1 02 09 23
+09 24 09 25 09 27 09 26 15 00 27 FF FF FF 7F 75
+20 95 05 B1 02 09 28 09 29 09 2A 09 2C 09 2D 15
+00 26 FF 00 75 08 95 05 B1 02 C0 85 04 09 50 A1
+02 09 03 09 55 15 00 25 08 75 08 95 02 B1 02 09
+21 15 00 27 FF FF 00 00 75 10 95 08 B1 02 09 51
+09 52 09 53 09 51 09 52 09 53 09 51 09 52 09 53
+09 51 09 52 09 53 09 51 09 52 09 53 09 51 09 52
+09 53 09 51 09 52 09 53 09 51 09 52 09 53 15 00
+26 FF 00 75 08 95 18 B1 02 C0 85 05 09 60 A1 02
+09 55 15 00 25 08 75 08 95 01 B1 02 09 61 09 62
+15 00 27 FF FF 00 00 75 10 95 02 B1 02 09 51 09
+52 09 53 15 00 26 FF 00 75 08 95 03 B1 02 C0 85
+06 09 70 A1 02 09 71 15 00 25 01 75 08 95 01 B1
+02 C0 85 07 06 00 FF 15 00 26 FF 00 09 02 75 08
+95 3F B1 02 C0 05 0C 09 01 A1 01 85 08 19 D0 29
+D7 15 00 25 01 75 01 95 08 81 02 C0
+'''
+protocol3 = "keyboard"
+is_boot_device3 = false
+in_report_max_length3 = 2
+
+
+[[razer.kbd.interface_at_3]]
+# From Razer Huntsman Mini Analog
+descriptor0 = '''
+05 01 09 06 A1 01 05 07 19 E0 29 E7 15 00 25 01
+75 01 95 08 81 02 81 01 19 00 2A FF 00 15 00 26
+FF 00 75 08 95 06 81 00 05 08 19 01 29 03 15 00
+25 01 75 01 95 03 91 02 95 05 91 01 C0
+'''
+protocol0 = "keyboard"
+is_boot_device0 = true
+in_report_max_length0 = 8
+
+descriptor1 = '''
+05 01 09 06 A1 01 85 01 05 07 05 07 19 E0 29 E7
+15 00 25 01 75 01 95 08 81 02 19 00 29 A0 15 00
+25 01 75 01 95 A0 81 02 75 08 95 02 81 01 05 08
+19 01 29 03 15 00 25 01 75 01 95 03 91 02 95 05
+91 01 C0 05 0C 09 01 A1 01 85 02 19 00 2A 3C 02
+15 00 26 3C 02 95 01 75 10 81 00 75 08 95 15 81
+01 C0 05 01 09 80 A1 01 85 03 19 81 29 83 15 00
+25 01 75 01 95 03 81 02 95 05 81 01 75 08 95 16
+81 01 C0 05 01 09 00 A1 01 85 04 09 03 15 00 26
+FF 00 35 00 46 FF 00 75 08 95 17 81 00 C0 05 01
+09 00 A1 01 85 05 09 03 15 00 26 FF 00 35 00 46
+FF 00 75 08 95 17 81 00 C0 05 01 09 00 A1 01 85
+07 09 03 15 00 26 FF 00 35 00 46 FF 00 75 08 95
+17 81 00 C0
+'''
+protocol1 = "keyboard"
+is_boot_device1 = false
+in_report_max_length1 = 24
+
+descriptor2 = '''
+05 01 09 02 A1 01 09 01 A1 00 05 09 19 01 29 05
+15 00 25 01 75 01 95 05 81 02 75 01 95 03 81 03
+06 00 FF 09 40 75 08 95 02 15 81 25 7F 81 02 05
+01 09 38 15 81 25 7F 75 08 95 01 81 06 09 30 09
+31 16 00 80 26 FF 7F 75 10 95 02 81 06 C0 C0
+'''
+protocol2 = "mouse"
+is_boot_device2 = false
+in_report_max_length2 = 8
+
+descriptor3 = '''
+05 0C 09 01 A1 01 06 00 FF 09 02 15 00 25 01 75
+08 95 5A B1 01 C0
+'''
+protocol3 = "none"
+is_boot_device3 = false
+in_report_max_length3 = 8
+
+descriptor4 = '''
+05 59 09 01 A1 01 85 01 09 02 A1 02 09 03 15 00
+27 FF FF 00 00 75 10 95 01 B1 03 09 04 09 05 09
+06 09 07 09 08 15 00 27 FF FF FF 7F 75 20 95 05
+B1 03 C0 85 02 09 20 A1 02 09 21 15 00 27 FF FF
+00 00 75 10 95 01 B1 02 C0 85 03 09 22 A1 02 09
+21 15 00 27 FF FF 00 00 75 10 95 01 B1 02 09 23
+09 24 09 25 09 27 09 26 15 00 27 FF FF FF 7F 75
+20 95 05 B1 02 09 28 09 29 09 2A 09 2C 09 2D 15
+00 26 FF 00 75 08 95 05 B1 02 C0 85 04 09 50 A1
+02 09 03 09 55 15 00 25 08 75 08 95 02 B1 02 09
+21 15 00 27 FF FF 00 00 75 10 95 08 B1 02 09 51
+09 52 09 53 09 51 09 52 09 53 09 51 09 52 09 53
+09 51 09 52 09 53 09 51 09 52 09 53 09 51 09 52
+09 53 09 51 09 52 09 53 09 51 09 52 09 53 15 00
+26 FF 00 75 08 95 18 B1 02 C0 85 05 09 60 A1 02
+09 55 15 00 25 08 75 08 95 01 B1 02 09 61 09 62
+15 00 27 FF FF 00 00 75 10 95 02 B1 02 09 51 09
+52 09 53 15 00 26 FF 00 75 08 95 03 B1 02 C0 85
+06 09 70 A1 02 09 71 15 00 25 01 75 08 95 01 B1
+02 C0 85 07 06 00 FF 15 00 26 FF 00 09 02 75 08
+95 3F B1 02 C0 05 0C 09 01 A1 01 85 08 19 D0 29
+D7 15 00 25 01 75 01 95 08 81 02 C0
+'''
+protocol4 = "keyboard"
+is_boot_device4 = false
+in_report_max_length4 = 2
+
+[[razer.kbd.interface_at_1.razer_blackwidow_ultimate_2012]]
+product="Razer BlackWidow Ultimate 2012"
+idProduct="010D"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_class_alternate]]
+product="Razer BlackWidow Classic (Alternate)"
+idProduct="010E"
+
+[[razer.kbd.interface_at_2.razer_anansi]]
+product="Razer Anansi"
+idProduct="010F"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_ultimate_2013]]
+product="Razer BlackWidow Ultimate 2013"
+idProduct="011A"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_stealth]]
+product="Razer BlackWidow Stealth"
+idProduct="011B"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_tournament_edition_2014]]
+product="Razer BlackWidow Tournament Edition 2014"
+idProduct="011C"
+
+[[razer.kbd.interface_at_2.razer_deathstalker_expert]]
+product="Razer DeathStalker Expert"
+idProduct="0202"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_chroma]]
+product="Razer BlackWidow Chroma"
+idProduct="0203"
+
+[[razer.kbd.razaer_deathstalker_chroma]]
+product="Razer DeathStalker Chroma"
+idProduct="0204"
+
+[[razer.kbd.interface_at_1.razer_blade_stealth]]
+product="Razer Blade Stealth"
+idProduct="0205"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_tournament_edition_chroma]]
+product="Razer BlackWidow Tournament Edition Chroma"
+idProduct="0209"
+
+[[razer.kbd.interface_at_1.razer_blade_qhd]]
+product="Razer Blade QHD"
+idProduct="020F"
+
+[[razer.kbd.interface_at_1.razer_blade_pro_late_2016]]
+product="Razer Blade Pro (Late 2016)"
+idProduct="0210"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_chroma_overwatch]]
+product="Razer BlackWidow Chroma (Overwatch)"
+idProduct="0211"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_ultimate_2016]]
+product="Razer BlackWidow Ultimate 2016"
+idProduct="0214"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_x_chroma]]
+product="Razer BlackWidow X Chroma"
+idProduct="0216"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_x_ultimate]]
+product="Razer BlackWidow X Ultimate"
+idProduct="0217"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_x_tournament_edition_chroma]]
+product="Razer BlackWidow X Tournament Edition Chroma"
+idProduct="021A"
+
+[[razer.kbd.interface_at_1.razer_ornata_chroma]]
+product="Razer Ornata Chroma"
+idProduct="021E"
+
+[[razer.kbd.interface_at_1.razer_ornata]]
+product="Razer Ornata"
+idProduct="021F"
+
+[[razer.kbd.interface_at_1.razer_blade_stealth_late_2016]]
+product="Razer Blade Stealth (Late 2016)"
+idProduct="0220"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_chroma_v2]]
+product="Razer BlackWidow Chroma V2"
+idProduct="0221"
+
+[[razer.kbd.interface_at_1.razer_blade_late_2016]]
+product="Razer Blade (Late 2016)"
+idProduct="0224"
+
+[[razer.kbd.interface_at_1.razer_blade_pro_2017]]
+product="Razer Blade Pro (2017)"
+idProduct="0225"
+
+[[razer.kbd.interface_at_1.razer_huntsman_elete]]
+product="Razer Huntsman Elite"
+idProduct="0226"
+
+[[razer.kbd.interface_at_1.razer_huntsman]]
+product="Razer Huntsman"
+idProduct="0227"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_elite]]
+product="Razer BlackWidow Elite"
+idProduct="0228"
+
+[[razer.kbd.interface_at_1.razer_cynosa_chroma]]
+product="Razer Cynosa Chroma"
+idProduct="022A"
+
+[[razer.kbd.interface_at_1.razer_cynosa_chroma_pro]]
+product="Razer Cynosa Chroma Pro"
+idProduct="022C"
+
+[[razer.kbd.interface_at_1.razer_blade_stealth_mid_2017]]
+product="Razer Blade Stealth (Mid 2017)"
+idProduct="022D"
+
+[[razer.kbd.interface_at_1.razer_blade_pro_fullhd_2017]]
+product="Razer Blade Pro FullHD (2017)"
+idProduct="022F"
+
+[[razer.kbd.interface_at_1.razer_blade_stealth_late_2017]]
+product="Razer Blade Stealth (Late 2017)"
+idProduct="0232"
+
+[[razer.kbd.interface_at_1.razer_blade_15_2018]]
+product="Razer Blade 15 (2018)"
+idProduct="0233"
+
+[[razer.kbd.interface_at_1.razer_blade_pro_27_2019]]
+product="Razer Blade Pro 17 (2019)"
+idProduct="0234"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_lite_2018]]
+product="Razer BlackWidow Lite (2018)"
+idProduct="0235"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_essential]]
+product="Razer BlackWidow Essential"
+idProduct="0237"
+
+[[razer.kbd.interface_at_1.razer_blade_stealth_2019]]
+product="Razer Blade Stealth (2019)"
+idProduct="0239"
+
+[[razer.kbd.interface_at_1.razer_blade_15_advanced_2019]]
+product="Razer Blade 15 Advanced (2019)"
+idProduct="023A"
+
+[[razer.kbd.interface_at_1.razer_blade_15_base_2018]]
+product="Razer Blade 15 Base (2018)"
+idProduct="023B"
+
+[[razer.kbd.interface_at_1.razer_cynosa_lite]]
+product="Razer Cynosa Lite"
+idProduct="023F"
+
+[[razer.kbd.interface_at_1.razer_blade_15_mercury_2018]]
+product="Razer Blade 15 Mercury (2018)"
+idProduct="0240"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_2019]]
+product="Razer BlackWidow (2019)"
+idProduct="0241"
+
+[[razer.kbd.interface_at_2.razer_huntsman_tournament_edition]]
+product="Razer Huntsman Tournament Edition"
+idProduct="0243"
+
+[[razer.kbd.interface_at_1.razer_blade_15_mercury_mid_2019]]
+product="Razer Blade 15 Mercury (Mid 2019)"
+idProduct="0245"
+
+[[razer.kbd.interface_at_1.razer_blade_15_base_mid_2019]]
+product="Razer Blade 15 Base (Mid 2019)"
+idProduct="0246"
+
+[[razer.kbd.interface_at_1.razer_blade_stealth_late_2019]]
+product="Razer Blade Stealth (Late 2019)"
+idProduct="024A"
+
+[[razer.kbd.interface_at_1.razer_blade_pro_late_2019]]
+product="Razer Blade Pro (Late 2019)"
+idProduct="024C"
+
+[[razer.kbd.interface_at_1.razer_blade_15_studio_edition_2019]]
+product="Razer Blade 15 Studio Edition (2019)"
+idProduct="024D"
+
+[[razer.kbd.interface_at_1.razer_blackwidow_v3]]
+product="Razer BlackWidow V3"
+idProduct="024E"
+
+[[razer.kbd.interface_at_1.razer_blade_stealth_early_2020]]
+product="Razer Blade Stealth (Early 2020)"
+idProduct="0252"
+
+[[razer.kbd.interface_at_1.razer_blade_15_advanced_2020]]
+product="Razer Blade 15 Advanced (2020)"
+idProduct="0253"
+
+[[razer.kbd.interface_at_1.razer_blade_15_base_early_2020]]
+product="Razer Blade 15 Base (Early 2020)"
+idProduct="0255"
+
+[[razer.kbd.interface_at_1.razer_blade_pro_17_early_2020]]
+product="Razer Blade Pro 17 (Early 2020)"
+idProduct="0256"
+
+[[razer.kbd.interface_at_2.razer_huntsman_mini]]
+product="Razer Huntsman Mini"
+idProduct="0257"
+
+[[razer.kbd.interface_at_3.razer_blackwidow_v3_mini_hyperspeed]]
+product="Razer BlackWidow V3 Mini Hyperspeed"
+idProduct="0258"
+
+[[razer.kbd.interface_at_1.razer_blade_stealth_late_2020]]
+product="Razer Blade Stealth (Late 2020)"
+idProduct="0259"
+
+[[razer.kbd.interface_at_2.razer_blackwidow_v3_pro_wired]]
+product="Razer BlackWidow V3 Pro (Wired)"
+idProduct="025A"
+
+[[razer.kbd.interface_at_2.razer_ornata_v2]]
+product="Razer Ornata V2"
+idProduct="025D"
+
+[[razer.kbd.interface_at_1.razer_cynosa_v2]]
+product="Razer Cynosa V2"
+idProduct="025E"
+
+[[razer.kbd.interface_at_3.razer_huntsman_v2_analog]]
+product="Razer Huntsman V2 Analog"
+idProduct="0266"
+
+[[razer.kbd.interface_at_2.razer_huntsman_mini_jp]]
+product="Razer Huntsman Mini"
+idProduct="0269"
+
+[[razer.kbd.interface_at_1.razer_book_13_2020]]
+product="Razer Book 13 (2020)"
+idProduct="026A"
+
+[[razer.kbd.interface_at_3.razer_huntsman_v2]]
+product="Razer Huntsman V2"
+idProduct="026C"
+
+[[razer.kbd.interface_at_1.razer_blade_15_advanced_early_2021]]
+product="Razer Blade 15 Advanced (Early 2021)"
+idProduct="026D"
+
+[[razer.kbd.interface_at_1.razer_blade_15_base_early_2021]]
+product="Razer Blade 15 Base (Early 2021)"
+idProduct="026F"
+
+[[razer.kbd.interface_at_1.razer_blade_15_2021]]
+product="Razer Blade 14 (2021)"
+idProduct="0270"
+
+[[razer.kbd.interface_at_3.razer_blackwidow_v3_mini_hyperspeed_wireless]]
+product="Razer BlackWidow V3 Mini Hyperspeed (Wireless)"
+idProduct="0271"
+
+[[razer.kbd.interface_at_1.razer_blade_15_advanced_mid_2021]]
+product="Razer Blade 15 Advanced (Mid 2021)"
+idProduct="0276"
+
+[[razer.kbd.interface_at_1.razer_blade_17_pro_mid_2021]]
+product="Razer Blade 17 Pro (Mid 2021)"
+idProduct="0279"
+
+[[razer.kbd.interface_at_3.razer_huntsman_mini_analog]]
+product="Razer Huntsman Mini Analog"
+idProduct="0282"
+
+[[razer.kbd.interface_at_1.razer_blade_15_advanced_early_2022]]
+product="Razer Blade 15 Advanced (Early 2022)"
+idProduct="028A"
+
+[[razer.kbd.interface_at_1.razer_blade_17_2022]]
+product="Razer Blade 17 (2022)"
+idProduct="028B"
+
+[[razer.kbd.interface_at_2.razer_blackwidow_v3_tenkeyless]]
+product="Razer BlackWidow V3 Tenkeyless"
+idProduct="0A24"

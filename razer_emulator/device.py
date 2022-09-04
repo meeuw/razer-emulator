@@ -94,18 +94,19 @@ class Command(Enum):
     UNKNOWN02 = CommandType(command_class=0x05, command_id=0x8A)
     UNKNOWN03 = CommandType(command_class=0x05, command_id=0x80)
     UNKNOWN04 = CommandType(command_class=0x06, command_id=0x80)
-    UNKNOWN05 = CommandType(command_class=0x06, command_id=0x8E) # at shutdown
+    UNKNOWN05 = CommandType(command_class=0x06, command_id=0x8E)  # at shutdown
     UNKNOWN06 = CommandType(command_class=0x0F, command_id=0x80)
     UNKNOWN07 = CommandType(command_class=0x03, command_id=0x07)
     UNKNOWN08 = CommandType(command_class=0x00, command_id=0x08)
     UNKNOWN09 = CommandType(command_class=0x07, command_id=0x01)
     UNKNOWN10 = CommandType(command_class=0x07, command_id=0x08)
     UNKNOWN11 = CommandType(command_class=0x07, command_id=0x0B)
-    UNKNOWN12 = CommandType(command_class=0x0d, command_id=0x82)
-    UNKNOWN13 = CommandType(command_class=0x0d, command_id=0x07)
-    UNKNOWN14 = CommandType(command_class=0x0d, command_id=0x83)
-    UNKNOWN15 = CommandType(command_class=0x0d, command_id=0x8b)
-    UNKNOWN16 = CommandType(command_class=0x0d, command_id=0x89)
+    UNKNOWN12 = CommandType(command_class=0x0D, command_id=0x82)
+    UNKNOWN13 = CommandType(command_class=0x0D, command_id=0x07)
+    UNKNOWN14 = CommandType(command_class=0x0D, command_id=0x83)
+    UNKNOWN15 = CommandType(command_class=0x0D, command_id=0x8B)
+    UNKNOWN16 = CommandType(command_class=0x0D, command_id=0x89)
+    UNKNOWN17 = CommandType(command_class=0x0D, command_id=0x02)
 
     READ_KBD_LAYOUT = CommandType(command_class=0x00, command_id=0x86)
 
@@ -164,8 +165,8 @@ class Command(Enum):
     MATRIX_BRIGHTNESS = CommandType(command_class=0x0F, command_id=0x04)
     MATRIX_EFFECT_BASE = CommandType(command_class=0x0F, command_id=0x02)
 
+
 def onSetupRazer(self, request_type, request, value, index, length):
-    trace(f"request_type: {request_type} request: {request} value: {value} index: {index} length: {length}")
     if (request_type & ch9.USB_TYPE_MASK) == ch9.USB_TYPE_CLASS:
         is_in = (request_type & ch9.USB_DIR_IN) == ch9.USB_DIR_IN
         recipient = request_type & ch9.USB_RECIP_MASK
@@ -179,9 +180,7 @@ def onSetupRazer(self, request_type, request, value, index, length):
                         header = struct.unpack(">BBHBBBB", buf[:8])
 
                         command = Command(
-                            CommandType(
-                                command_class=header[5], command_id=header[6]
-                            )
+                            CommandType(command_class=header[5], command_id=header[6])
                         )
 
                         self.razer_report = {
@@ -200,7 +199,7 @@ def onSetupRazer(self, request_type, request, value, index, length):
                         self.razer_report["reserved"] = buf[89]
 
                         trace(self.razer_report)
-                        return False
+                        return True
         if request == hid.HID_REQ_GET_REPORT:
             if is_in:
                 if recipient == ch9.USB_RECIP_INTERFACE:
@@ -208,7 +207,7 @@ def onSetupRazer(self, request_type, request, value, index, length):
                         trace("hid req get report")
                         command = self.razer_report["command"]
                         if command == Command.GET_SERIAL:
-                            data = get_config("serial").encode('utf-8')
+                            data = get_config("serial").encode("utf-8")
                         elif command == Command.GET_FIRMWARE_VERSION:
                             data = b"\x01\x00"
                         elif command == Command.READ_KBD_LAYOUT:
@@ -219,9 +218,7 @@ def onSetupRazer(self, request_type, request, value, index, length):
                         buf = struct.pack(
                             ">BBHBBBB",
                             Status.OK.value,  # status / start marker
-                            self.razer_report[
-                                "transaction_id"
-                            ],  # transaction_id / id
+                            self.razer_report["transaction_id"],  # transaction_id / id
                             0,  # remaining_packets
                             0,  # protocol_type
                             len(data),  # data_size / num params
@@ -235,8 +232,8 @@ def onSetupRazer(self, request_type, request, value, index, length):
                         buf += b"\x00"
                         trace(len(buf))
                         self.ep0.write(buf)
-                        return False
-    return True
+                        return True
+    return False
 
 
 PROTOCOLS = {
@@ -244,6 +241,7 @@ PROTOCOLS = {
     "mouse": functionfs.hid.USB_INTERFACE_PROTOCOL_MOUSE,
     "none": functionfs.hid.USB_INTERFACE_PROTOCOL_NONE,
 }
+
 
 class Function0(functionfs.HIDFunction):
     """
@@ -258,11 +256,17 @@ class Function0(functionfs.HIDFunction):
             in_report_max_length=get_config("in_report_max_length0"),
             full_speed_interval=1,
             high_speed_interval=1,
-            **kw
+            **kw,
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        if onSetupRazer(self, request_type, request, value, 0, length):
+        trace(
+            f"request_type: {request_type} request: {request} value: {value} index: 0 length: {length}"
+        )
+        if not (
+            get_config("controlling_interface") == 0
+            and onSetupRazer(self, request_type, request, value, 0, length)
+        ):
             super().onSetup(
                 request_type,
                 request,
@@ -285,11 +289,17 @@ class Function1(functionfs.HIDFunction):
             in_report_max_length=get_config("in_report_max_length1"),
             full_speed_interval=1,
             high_speed_interval=1,
-            **kw
+            **kw,
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        if onSetupRazer(self, request_type, request, value, 1, length):
+        trace(
+            f"request_type: {request_type} request: {request} value: {value} index: 1 length: {length}"
+        )
+        if not (
+            get_config("controlling_interface") == 1
+            and onSetupRazer(self, request_type, request, value, 1, length)
+        ):
             super().onSetup(
                 request_type,
                 request,
@@ -312,11 +322,17 @@ class Function2(functionfs.HIDFunction):
             in_report_max_length=get_config("in_report_max_length2"),
             full_speed_interval=1,
             high_speed_interval=1,
-            **kw
+            **kw,
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        if onSetupRazer(self, request_type, request, value, 2, length):
+        trace(
+            f"request_type: {request_type} request: {request} value: {value} index: 2 length: {length}"
+        )
+        if not (
+            get_config("controlling_interface") == 2
+            and onSetupRazer(self, request_type, request, value, 2, length)
+        ):
             super().onSetup(
                 request_type,
                 request,
@@ -340,11 +356,17 @@ class Function3(functionfs.HIDFunction):
             in_report_max_length=get_config("in_report_max_length3"),
             full_speed_interval=1,
             high_speed_interval=1,
-            **kw
+            **kw,
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        if onSetupRazer(self, request_type, request, value, 3, length):
+        trace(
+            f"request_type: {request_type} request: {request} value: {value} index: 3 length: {length}"
+        )
+        if not (
+            get_config("controlling_interface") == 3
+            and onSetupRazer(self, request_type, request, value, 3, length)
+        ):
             super().onSetup(
                 request_type,
                 request,
@@ -367,11 +389,17 @@ class Function4(functionfs.HIDFunction):
             in_report_max_length=get_config("in_report_max_length4"),
             full_speed_interval=1,
             high_speed_interval=1,
-            **kw
+            **kw,
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        if onSetupRazer(self, request_type, request, value, 4, length):
+        trace(
+            f"request_type: {request_type} request: {request} value: {value} index: 4 length: {length}"
+        )
+        if not (
+            get_config("controlling_interface") == 4
+            and onSetupRazer(self, request_type, request, value, 4, length)
+        ):
             super().onSetup(
                 request_type,
                 request,
@@ -406,35 +434,47 @@ def main():
     parser = GadgetSubprocessManager.getArgumentParser(
         description="Razer Emulator",
     )
-    parser.add_argument("--device", help="device name (from devices.toml)", required=True)
+    parser.add_argument(
+        "--device", help="device name (from devices.toml)", required=True
+    )
 
     args = parser.parse_args()
     get_config.device = args.device
 
     function_list = []
     if get_config("descriptor0", ""):
+
         def get_config_function_subprocess0(**kw):
             return ConfigFunctionFFSSubprocess(getFunction=Function0, **kw)
+
         function_list.append(get_config_function_subprocess0)
 
     if get_config("descriptor1", ""):
+
         def get_config_function_subprocess1(**kw):
             return ConfigFunctionFFSSubprocess(getFunction=Function1, **kw)
+
         function_list.append(get_config_function_subprocess1)
 
     if get_config("descriptor2", ""):
+
         def get_config_function_subprocess2(**kw):
             return ConfigFunctionFFSSubprocess(getFunction=Function2, **kw)
+
         function_list.append(get_config_function_subprocess2)
 
     if get_config("descriptor3", ""):
+
         def get_config_function_subprocess3(**kw):
             return ConfigFunctionFFSSubprocess(getFunction=Function3, **kw)
+
         function_list.append(get_config_function_subprocess3)
 
     if get_config("descriptor4", ""):
+
         def get_config_function_subprocess4(**kw):
             return ConfigFunctionFFSSubprocess(getFunction=Function4, **kw)
+
         function_list.append(get_config_function_subprocess4)
 
     with GadgetSubprocessManager(

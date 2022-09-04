@@ -174,6 +174,8 @@ def onSetupRazer(self, request_type, request, value, index, length):
             if not is_in:
                 if recipient == ch9.USB_RECIP_INTERFACE:
                     if value == 0x300:
+                        if index != get_config("controlling_interface"):
+                            trace("WARNING Using invalid interface, probably not parsing HID descriptor")
                         trace("hid req set report")
                         buf = self.ep0.read(length)
                         trace(buf)
@@ -204,6 +206,8 @@ def onSetupRazer(self, request_type, request, value, index, length):
             if is_in:
                 if recipient == ch9.USB_RECIP_INTERFACE:
                     if value == 0x300:
+                        if index != get_config("controlling_interface"):
+                            trace("WARNING Using invalid interface, probably not parsing HID descriptor")
                         trace("hid req get report")
                         command = self.razer_report["command"]
                         if command == Command.GET_SERIAL:
@@ -264,7 +268,7 @@ class Function0(functionfs.HIDFunction):
             f"request_type: {request_type} request: {request} value: {value} index: 0 length: {length}"
         )
         if not (
-            get_config("controlling_interface") == 0
+            "0" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 0, length)
         ):
             super().onSetup(
@@ -297,7 +301,7 @@ class Function1(functionfs.HIDFunction):
             f"request_type: {request_type} request: {request} value: {value} index: 1 length: {length}"
         )
         if not (
-            get_config("controlling_interface") == 1
+            "1" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 1, length)
         ):
             super().onSetup(
@@ -330,7 +334,7 @@ class Function2(functionfs.HIDFunction):
             f"request_type: {request_type} request: {request} value: {value} index: 2 length: {length}"
         )
         if not (
-            get_config("controlling_interface") == 2
+            "2" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 2, length)
         ):
             super().onSetup(
@@ -364,7 +368,7 @@ class Function3(functionfs.HIDFunction):
             f"request_type: {request_type} request: {request} value: {value} index: 3 length: {length}"
         )
         if not (
-            get_config("controlling_interface") == 3
+            "3" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 3, length)
         ):
             super().onSetup(
@@ -397,7 +401,7 @@ class Function4(functionfs.HIDFunction):
             f"request_type: {request_type} request: {request} value: {value} index: 4 length: {length}"
         )
         if not (
-            get_config("controlling_interface") == 4
+            "4" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 4, length)
         ):
             super().onSetup(

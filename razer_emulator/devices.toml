@@ -57,7 +57,7 @@ in_report_max_length2 = 8
 
 [[razer.kbd.interface_at_3]]
 controlling_interface = 3
-allowed_interface = "3"
+allowed_interfaces = "3"
 # From Razer Huntsman Mini Analog
 descriptor0 = '''
 05 01 09 06 A1 01 05 07 19 E0 29 E7 15 00 25 01

@@ -107,6 +107,9 @@ class Command(Enum):
     UNKNOWN15 = CommandType(command_class=0x0D, command_id=0x8B)
     UNKNOWN16 = CommandType(command_class=0x0D, command_id=0x89)
     UNKNOWN17 = CommandType(command_class=0x0D, command_id=0x02)
+    UNKNOWN18 = CommandType(command_class=0x00, command_id=0x89)
+    UNKNOWN19 = CommandType(command_class=0x00, command_id=0xB9)
+    UNKNOWN20 = CommandType(command_class=0x0F, command_id=0x82)
 
     READ_KBD_LAYOUT = CommandType(command_class=0x00, command_id=0x86)
 

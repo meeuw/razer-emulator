@@ -90,12 +90,23 @@ class Command(Enum):
     GET_SERIAL = CommandType(command_class=0x00, command_id=0x82)
     GET_FIRMWARE_VERSION = CommandType(command_class=0x00, command_id=0x81)
 
-    UNKNOWN01 = CommandType(command_class=0x00, command_id=0x87)
-    UNKNOWN02 = CommandType(command_class=0x05, command_id=0x8A)
-    UNKNOWN03 = CommandType(command_class=0x05, command_id=0x80)
-    UNKNOWN04 = CommandType(command_class=0x06, command_id=0x80)
-    UNKNOWN05 = CommandType(command_class=0x06, command_id=0x8E)  # at shutdown
-    UNKNOWN06 = CommandType(command_class=0x0F, command_id=0x80)
+    SET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x08)
+    GET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x88)
+
+    UNKNOWN0212 = CommandType(command_class=0x02, command_id=0x12) # bind keys
+    UNKNOWN0292 = CommandType(command_class=0x02, command_id=0x92)
+    UNKNOWN0502 = CommandType(command_class=0x05, command_id=0x02) # write preset / start up
+    UNKNOWN0503 = CommandType(command_class=0x05, command_id=0x03) # delete preset / start up
+    UNKNOWN0580 = CommandType(command_class=0x05, command_id=0x80) # start up (amount of presets?)
+    UNKNOWN0581 = CommandType(command_class=0x05, command_id=0x81) # start up
+    UNKNOWN058A = CommandType(command_class=0x05, command_id=0x8A) # start up
+    UNKNOWN0680 = CommandType(command_class=0x06, command_id=0x80) # delete preset / start up
+    UNKNOWN068E = CommandType(command_class=0x06, command_id=0x8E) # write preset / delete preset / start up
+
+    UNKNOWN0F80 = CommandType(command_class=0x0F, command_id=0x80) # synapse quit / write preset
+    UNKNOWN0F82 = CommandType(command_class=0x0F, command_id=0x82) # synapse quit / write preset
+
+    UNKNOWN0087 = CommandType(command_class=0x00, command_id=0x87) # synapse start
     UNKNOWN07 = CommandType(command_class=0x03, command_id=0x07)
     UNKNOWN08 = CommandType(command_class=0x00, command_id=0x08)
     UNKNOWN09 = CommandType(command_class=0x07, command_id=0x01)
@@ -109,7 +120,6 @@ class Command(Enum):
     UNKNOWN17 = CommandType(command_class=0x0D, command_id=0x02)
     UNKNOWN18 = CommandType(command_class=0x00, command_id=0x89)
     UNKNOWN19 = CommandType(command_class=0x00, command_id=0xB9)
-    UNKNOWN20 = CommandType(command_class=0x0F, command_id=0x82)
 
     READ_KBD_LAYOUT = CommandType(command_class=0x00, command_id=0x86)
 
@@ -168,6 +178,63 @@ class Command(Enum):
     MATRIX_BRIGHTNESS = CommandType(command_class=0x0F, command_id=0x04)
     MATRIX_EFFECT_BASE = CommandType(command_class=0x0F, command_id=0x02)
 
+@functools.cache
+class KeyboardStatus:
+    def __init__(self):
+        self.leds = []
+        for row in range(5):
+            self.leds.append([])
+            for key in range(15):
+                self.leds[row].append([0,0,0])
+        self.last_print = ""
+        self.device_mode = b"\x00\x00"
+        self.preset_data = bytearray(64*4)
+
+    def parse_trinity_effect(self, data):
+        row = 0
+        start = 0
+        end = 0
+        for i, b in enumerate(data):
+            if i == 2:
+                row = b
+            if i == 3:
+                start = b
+            if i == 4:
+                end = b
+            if i >= 5 and ((i - 5) < ((end - start + 1) * 3)):
+                key = start + int((i - 5) / 3)
+                self.leds[row][key][(i - 5) % 3] = b
+
+    def print(self):
+        lines = f"DM: {self.device_mode[0]:02X}{self.device_mode[1]:02X}\n"
+        lines += self.preset_data.hex() + "\n"
+        for row in self.leds:
+            line = ""
+            for key in row:
+                line += f"{key[0]:02X}{key[1]:02X}{key[2]:02X}"
+            lines += f"{line}\n"
+
+        if self.last_print != lines:
+            print(lines)
+            self.last_print = lines
+
+
+    def set_device_mode(self, device_mode):
+        self.device_mode = device_mode
+
+
+    def get_device_mode(self):
+        return self.device_mode
+
+    def set_preset_data(self, preset_data):
+        print('set_preset_data', preset_data.hex())
+        offset = preset_data[2]
+        for i, b in enumerate(preset_data[5:]):
+            self.preset_data[offset+i] = b
+
+    def get_preset_data(self, preset, offset):
+        return b'\x02\x00' + bytes((offset,0x00,0xfa)) + self.preset_data[offset:offset+64]
+
 
 def onSetupRazer(self, request_type, request, value, index, length):
     if (request_type & ch9.USB_TYPE_MASK) == ch9.USB_TYPE_CLASS:
@@ -179,9 +246,9 @@ def onSetupRazer(self, request_type, request, value, index, length):
                     if value == 0x300:
                         if index != get_config("controlling_interface"):
                             trace("WARNING Using invalid interface, probably not parsing HID descriptor")
-                        trace("hid req set report")
+                        #trace("hid req set report")
                         buf = self.ep0.read(length)
-                        trace(buf)
+                        #trace(buf)
                         header = struct.unpack(">BBHBBBB", buf[:8])
 
                         command = Command(
@@ -203,7 +270,18 @@ def onSetupRazer(self, request_type, request, value, index, length):
                         self.razer_report["crc"] = buf[88]
                         self.razer_report["reserved"] = buf[89]
 
-                        trace(self.razer_report)
+                        if self.razer_report["command"] == Command.TRINITY_EFFECT:
+                            KeyboardStatus().parse_trinity_effect(self.razer_report["data"])
+                            KeyboardStatus().print()
+                        elif self.razer_report["command"] == Command.SET_DEVICE_MODE:
+                            KeyboardStatus().set_device_mode(self.razer_report["data"])
+                            KeyboardStatus().print()
+                        elif self.razer_report["command"] == Command.SET_PRESET_DATA:
+                            KeyboardStatus().set_preset_data(self.razer_report["data"])
+                            KeyboardStatus().print()
+                        else:
+                            trace(self.razer_report)
+
                         return True
         if request == hid.HID_REQ_GET_REPORT:
             if is_in:
@@ -219,6 +297,12 @@ def onSetupRazer(self, request_type, request, value, index, length):
                             data = b"\x01\x00"
                         elif command == Command.READ_KBD_LAYOUT:
                             data = b"\x01\x00"
+                        elif command == Command.UNKNOWN0580:
+                            data = b"\x02"
+                        elif command == Command.GET_DEVICE_MODE:
+                            data = KeyboardStatus().get_device_mode()
+                        elif command == Command.GET_PRESET_DATA:
+                            data = KeyboardStatus().get_preset_data(self.razer_report["data"][0], self.razer_report["data"][2])
                         else:
                             data = b""
 
@@ -267,9 +351,9 @@ class Function0(functionfs.HIDFunction):
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        trace(
-            f"request_type: {request_type} request: {request} value: {value} index: 0 length: {length}"
-        )
+        #trace(
+        #    f"request_type: {request_type} request: {request} value: {value} index: 0 length: {length}"
+        #)
         if not (
             "0" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 0, length)
@@ -300,9 +384,9 @@ class Function1(functionfs.HIDFunction):
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        trace(
-            f"request_type: {request_type} request: {request} value: {value} index: 1 length: {length}"
-        )
+        #trace(
+        #    f"request_type: {request_type} request: {request} value: {value} index: 1 length: {length}"
+        #)
         if not (
             "1" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 1, length)
@@ -333,9 +417,9 @@ class Function2(functionfs.HIDFunction):
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        trace(
-            f"request_type: {request_type} request: {request} value: {value} index: 2 length: {length}"
-        )
+        #trace(
+        #    f"request_type: {request_type} request: {request} value: {value} index: 2 length: {length}"
+        #)
         if not (
             "2" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 2, length)
@@ -367,9 +451,9 @@ class Function3(functionfs.HIDFunction):
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        trace(
-            f"request_type: {request_type} request: {request} value: {value} index: 3 length: {length}"
-        )
+        #trace(
+        #    f"request_type: {request_type} request: {request} value: {value} index: 3 length: {length}"
+        #)
         if not (
             "3" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 3, length)
@@ -400,9 +484,9 @@ class Function4(functionfs.HIDFunction):
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        trace(
-            f"request_type: {request_type} request: {request} value: {value} index: 4 length: {length}"
-        )
+        #trace(
+        #    f"request_type: {request_type} request: {request} value: {value} index: 4 length: {length}"
+        #)
         if not (
             "4" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 4, length)

@@ -92,6 +92,7 @@ class Command(Enum):
 
     SET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x08)
     GET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x88)
+    GET_DATA_MAX_FREE = CommandType(command_class=0x06, command_id=0x8E)
 
     UNKNOWN0212 = CommandType(command_class=0x02, command_id=0x12) # bind keys
     UNKNOWN0292 = CommandType(command_class=0x02, command_id=0x92)
@@ -99,9 +100,8 @@ class Command(Enum):
     UNKNOWN0503 = CommandType(command_class=0x05, command_id=0x03) # delete preset / start up
     UNKNOWN0580 = CommandType(command_class=0x05, command_id=0x80) # start up (amount of presets?)
     UNKNOWN0581 = CommandType(command_class=0x05, command_id=0x81) # start up
-    UNKNOWN058A = CommandType(command_class=0x05, command_id=0x8A) # start up
+    UNKNOWN058A = CommandType(command_class=0x05, command_id=0x8A) # start up (amount of available presets?)
     UNKNOWN0680 = CommandType(command_class=0x06, command_id=0x80) # delete preset / start up
-    UNKNOWN068E = CommandType(command_class=0x06, command_id=0x8E) # write preset / delete preset / start up
 
     UNKNOWN0F80 = CommandType(command_class=0x0F, command_id=0x80) # synapse quit / write preset
     UNKNOWN0F82 = CommandType(command_class=0x0F, command_id=0x82) # synapse quit / write preset
@@ -303,6 +303,12 @@ def onSetupRazer(self, request_type, request, value, index, length):
                             data = KeyboardStatus().get_device_mode()
                         elif command == Command.GET_PRESET_DATA:
                             data = KeyboardStatus().get_preset_data(self.razer_report["data"][0], self.razer_report["data"][2])
+                        elif command == Command.UNKNOWN058A:
+                            data = b"\x05"
+                        elif command == Command.GET_DATA_MAX_FREE:
+                            d_max = 458736
+                            d_free = 457336
+                            data = b"\xff\xff" + struct.pack(">II", d_max, d_free) + b"\x00\x00\x00\x00"
                         else:
                             data = b""
 

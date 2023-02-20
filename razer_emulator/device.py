@@ -93,14 +93,16 @@ class Command(Enum):
     SET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x08)
     GET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x88)
     GET_DATA_MAX_FREE = CommandType(command_class=0x06, command_id=0x8E)
+    GET_ACTIVE_PRESETS = CommandType(command_class=0x05, command_id=0x81)
+    DEL_PRESET = CommandType(command_class=0x05, command_id=0x03)
+    GET_ACTIVE_PRESETS_LEN = CommandType(command_class=0x05, command_id=0x80)
 
     UNKNOWN0212 = CommandType(command_class=0x02, command_id=0x12) # bind keys
     UNKNOWN0292 = CommandType(command_class=0x02, command_id=0x92)
+
     UNKNOWN0502 = CommandType(command_class=0x05, command_id=0x02) # write preset / start up
-    UNKNOWN0503 = CommandType(command_class=0x05, command_id=0x03) # delete preset / start up
-    UNKNOWN0580 = CommandType(command_class=0x05, command_id=0x80) # start up (amount of presets?)
-    UNKNOWN0581 = CommandType(command_class=0x05, command_id=0x81) # start up
     UNKNOWN058A = CommandType(command_class=0x05, command_id=0x8A) # start up (amount of available presets?)
+
     UNKNOWN0680 = CommandType(command_class=0x06, command_id=0x80) # delete preset / start up
 
     UNKNOWN0F80 = CommandType(command_class=0x0F, command_id=0x80) # synapse quit / write preset
@@ -188,7 +190,7 @@ class KeyboardStatus:
                 self.leds[row].append([0,0,0])
         self.last_print = ""
         self.device_mode = b"\x00\x00"
-        self.preset_data = bytearray(64*4)
+        self.preset_data = {1: bytearray(64*4-1)}
 
     def parse_trinity_effect(self, data):
         row = 0
@@ -207,7 +209,8 @@ class KeyboardStatus:
 
     def print(self):
         lines = f"DM: {self.device_mode[0]:02X}{self.device_mode[1]:02X}\n"
-        lines += self.preset_data.hex() + "\n"
+        for preset, preset_data in self.preset_data.items():
+            lines += f"{preset}: {preset_data.hex()}\n"
         for row in self.leds:
             line = ""
             for key in row:
@@ -228,12 +231,32 @@ class KeyboardStatus:
 
     def set_preset_data(self, preset_data):
         print('set_preset_data', preset_data.hex())
+        preset = preset_data[0]
         offset = preset_data[2]
+        size = preset_data[4]
+
+        if not preset in self.preset_data:
+            self.preset_data[preset] = bytearray(size)
+
         for i, b in enumerate(preset_data[5:]):
-            self.preset_data[offset+i] = b
+            self.preset_data[preset][offset+i] = b
+
+        self.preset_data[1] = self.preset_data[preset]
 
     def get_preset_data(self, preset, offset):
-        return b'\x02\x00' + bytes((offset,0x00,0xfa)) + self.preset_data[offset:offset+64]
+        if preset in self.preset_data:
+            preset_data = self.preset_data[preset]
+        else:
+            preset_data = bytes(64 * 4 - 1)
+        size = len(preset_data)
+        return bytes((preset, 0x00, offset,0x00,size)) + preset_data[offset:min(offset+64, size)]
+
+    def get_active_presets(self):
+        return sorted(self.preset_data.keys())
+
+    def del_preset(self, preset):
+        if preset in self.preset_data:
+            del self.preset_data[preset]
 
 
 def onSetupRazer(self, request_type, request, value, index, length):
@@ -279,6 +302,9 @@ def onSetupRazer(self, request_type, request, value, index, length):
                         elif self.razer_report["command"] == Command.SET_PRESET_DATA:
                             KeyboardStatus().set_preset_data(self.razer_report["data"])
                             KeyboardStatus().print()
+                        elif self.razer_report["command"] == Command.DEL_PRESET:
+                            KeyboardStatus().del_preset(self.razer_report["data"][0])
+                            KeyboardStatus().print()
                         else:
                             trace(self.razer_report)
 
@@ -297,20 +323,31 @@ def onSetupRazer(self, request_type, request, value, index, length):
                             data = b"\x01\x00"
                         elif command == Command.READ_KBD_LAYOUT:
                             data = b"\x01\x00"
-                        elif command == Command.UNKNOWN0580:
-                            data = b"\x02"
+                        elif command == Command.GET_ACTIVE_PRESETS_LEN:
+                            data = bytes((len(KeyboardStatus().get_active_presets()),))
                         elif command == Command.GET_DEVICE_MODE:
                             data = KeyboardStatus().get_device_mode()
+                            print("get_device_mode", data)
                         elif command == Command.GET_PRESET_DATA:
                             data = KeyboardStatus().get_preset_data(self.razer_report["data"][0], self.razer_report["data"][2])
+                            print('get_preset_data', data, len(data), len(self.razer_report["data"]))
                         elif command == Command.UNKNOWN058A:
                             data = b"\x05"
                         elif command == Command.GET_DATA_MAX_FREE:
                             d_max = 458736
                             d_free = 457336
                             data = b"\xff\xff" + struct.pack(">II", d_max, d_free) + b"\x00\x00\x00\x00"
+                        elif command == Command.UNKNOWN0087:
+                            data = b"\x01"
+                        elif command == Command.GET_ACTIVE_PRESETS:
+                            active_presets = KeyboardStatus().get_active_presets()
+                            data = bytearray(65)
+                            if len(active_presets) > 1:
+                                data[0] = len(active_presets)
+                                for offset, preset in enumerate(active_presets):
+                                    data[offset + 1] = preset
                         else:
-                            data = b""
+                            data = self.razer_report["data"]
 
                         buf = struct.pack(
                             ">BBHBBBB",

@@ -90,6 +90,8 @@ class Command(Enum):
     GET_SERIAL = CommandType(command_class=0x00, command_id=0x82)
     GET_FIRMWARE_VERSION = CommandType(command_class=0x00, command_id=0x81)
 
+    BIND_KEYS = CommandType(command_class=0x02, command_id=0x12)
+
     SET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x08)
     GET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x88)
     GET_DATA_MAX_FREE = CommandType(command_class=0x06, command_id=0x8E)
@@ -97,7 +99,7 @@ class Command(Enum):
     DEL_PRESET = CommandType(command_class=0x05, command_id=0x03)
     GET_ACTIVE_PRESETS_LEN = CommandType(command_class=0x05, command_id=0x80)
 
-    UNKNOWN0212 = CommandType(command_class=0x02, command_id=0x12) # bind keys
+
     UNKNOWN0292 = CommandType(command_class=0x02, command_id=0x92)
 
     UNKNOWN0502 = CommandType(command_class=0x05, command_id=0x02) # write preset / start up
@@ -260,13 +262,15 @@ class KeyboardStatus:
 
 
 def onSetupRazer(self, request_type, request, value, index, length):
+    trace(f"request_type: {request_type} request: {request} value: {value} index: {index} length: {length}")
     if (request_type & ch9.USB_TYPE_MASK) == ch9.USB_TYPE_CLASS:
         is_in = (request_type & ch9.USB_DIR_IN) == ch9.USB_DIR_IN
         recipient = request_type & ch9.USB_RECIP_MASK
         if request == hid.HID_REQ_SET_REPORT:
             if not is_in:
                 if recipient == ch9.USB_RECIP_INTERFACE:
-                    if value == 0x300:
+                    # HID_FEATURE_REPORT (HID_FEATURE_REPORT + 1) / REPORT_NUMBER
+                    if value == 0x0300:
                         if index != get_config("controlling_interface"):
                             trace("WARNING Using invalid interface, probably not parsing HID descriptor")
                         #trace("hid req set report")
@@ -293,6 +297,9 @@ def onSetupRazer(self, request_type, request, value, index, length):
                         self.razer_report["crc"] = buf[88]
                         self.razer_report["reserved"] = buf[89]
 
+                        if self.razer_report["transaction_id"] != 0x1f:
+                            trace("WARNING Using invalid transaction_id")
+
                         if self.razer_report["command"] == Command.TRINITY_EFFECT:
                             KeyboardStatus().parse_trinity_effect(self.razer_report["data"])
                             KeyboardStatus().print()
@@ -305,6 +312,17 @@ def onSetupRazer(self, request_type, request, value, index, length):
                         elif self.razer_report["command"] == Command.DEL_PRESET:
                             KeyboardStatus().del_preset(self.razer_report["data"][0])
                             KeyboardStatus().print()
+                        elif self.razer_report["command"] == Command.BIND_KEYS:
+                            version = self.razer_report["data"][0]
+                            from_key = self.razer_report["data"][1]
+                            is_fn = self.razer_report["data"][2]
+                            actuation_point = self.razer_report["data"][3]
+                            release_point = self.razer_report["data"][4]
+                            # type (0 disable, 1 mouse, 2 keyboard, 10 multimedia, 11 double click, 12 fn)
+                            bind_keys_type = self.razer_report["data"][5]
+                            parameters_len = self.razer_report["data"][6]
+                            parameters = self.razer_report["data"][7:7+parameters_len]
+                            trace(f"version: {version} from_key: {from_key} is_fn: {is_fn} actuation_point: {actuation_point} release_point: {release_point} bind_keys_type: {bind_keys_type} parameters: {parameters}")
                         else:
                             trace(self.razer_report)
 
@@ -312,7 +330,8 @@ def onSetupRazer(self, request_type, request, value, index, length):
         if request == hid.HID_REQ_GET_REPORT:
             if is_in:
                 if recipient == ch9.USB_RECIP_INTERFACE:
-                    if value == 0x300:
+                    # HID_FEATURE_REPORT (HID_FEATURE_REPORT + 1) / REPORT_NUMBER
+                    if value == 0x0300:
                         if index != get_config("controlling_interface"):
                             trace("WARNING Using invalid interface, probably not parsing HID descriptor")
                         trace("hid req get report")
@@ -409,6 +428,24 @@ class Function0(functionfs.HIDFunction):
                 length,
             )
 
+class HIDINEndpoint(functionfs.EndpointINFile):
+    """
+    Customise what happens on IN transfer completion.
+    In a real device, here may be where you would sample and clear the current
+    movement deltas, and construct a new HID report to send to the host.
+    """
+    def onComplete(self, buffer_list, user_data, status):
+        #trace("onComplete")
+        if status < 0:
+            if status == -errno.ESHUTDOWN:
+                # Mouse is unplugged, host selected another configuration, ...
+                # Stop submitting the transfer.
+                return False
+            raise IOError(-status)
+        # Resubmit the transfer. We did not change its buffer, so the
+        # mouse movement will carry on identically.
+        return True
+
 
 class Function1(functionfs.HIDFunction):
     """
@@ -427,9 +464,9 @@ class Function1(functionfs.HIDFunction):
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        #trace(
-        #    f"request_type: {request_type} request: {request} value: {value} index: 1 length: {length}"
-        #)
+        trace(
+            f"request_type: {request_type} request: {request} value: {value} index: 1 length: {length}"
+        )
         if not (
             "1" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 1, length)
@@ -440,6 +477,37 @@ class Function1(functionfs.HIDFunction):
                 value,
                 index,
                 length,
+            )
+
+
+    def getEndpointClass(self, is_in, descriptor):
+        """
+        Tall HIDFunction that we want it to use our custom IN endpoint class
+        for our only IN endpoint.
+        """
+        if is_in:
+            return HIDINEndpoint
+        return super().getEndpointClass(is_in, descriptor)
+
+
+    def onEnable(self):
+        if False:
+            trace("onEnable")
+            super().onEnable()
+            data1 = bytearray(23)
+            data1[0] = 0x07
+            data1[1] = 0x16 # Y
+            data1[2] = 0xff
+            data1[3] = 0x3b # FN
+            data1[4] = 0xff
+            data2 = bytearray(23)
+            data2[0] = 0x07
+            data2[1] = 0x16
+            data2[2] = 0x0
+            data2[3] = 0x3b
+            data2[4] = 0x0
+            self.getEndpoint(1).submit(
+                (data1, data2)
             )
 
 

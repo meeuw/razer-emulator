@@ -6,6 +6,10 @@ manufacturer="Razer"
 # Fake serial
 serial="PM2201F66644064"
 
+[[razer.audio]]
+# Fake serial
+serial="PM2201F66644064"
+
 # The HID descriptors can be obtained by (in reverse order!):
 # usbhid-dump -m 1532:0282 -ea
 
@@ -481,3 +485,22 @@ descriptor3 = '''
 protocol3 = "keyboard"
 is_boot_device3 = true
 in_report_max_length3 = 64
+
+[[razer.audio.razer_kraken_v3_hypersense]]
+product="Razer Kraken V3 HyperSense"
+idProduct="0533"
+
+controlling_interface = "0"
+allowed_interfaces = "0"
+
+descriptor0 = '''
+05 01 09 02 A1 01 09 01 A1 00 05 09 19 01 29 05
+15 00 25 01 75 01 95 05 81 02 75 01 95 03 81 03
+06 00 FF 09 40 75 08 95 02 15 81 25 7F 81 02 05
+01 09 38 15 81 25 7F 75 08 95 01 81 06 09 30 09
+31 16 00 80 26 FF 7F 75 10 95 02 81 06 C0 06 00
+FF 09 02 15 00 25 01 75 08 95 5A B1 01 C0
+'''
+is_boot_device0 = false
+in_report_max_length0 = 64
+protocol0 = "none"

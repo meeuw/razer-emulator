@@ -91,6 +91,8 @@ class Command(Enum):
     GET_FIRMWARE_VERSION = CommandType(command_class=0x00, command_id=0x81)
 
     BIND_KEYS = CommandType(command_class=0x02, command_id=0x12)
+    # used by huntsman mini
+    BIND_KEYS_2 = CommandType(command_class=0x02, command_id=0x0d)
 
     SET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x08)
     GET_PRESET_DATA = CommandType(command_class=0x05, command_id=0x88)
@@ -186,10 +188,6 @@ class Command(Enum):
 class KeyboardStatus:
     def __init__(self):
         self.leds = []
-        for row in range(5):
-            self.leds.append([])
-            for key in range(15):
-                self.leds[row].append([0,0,0])
         self.last_print = ""
         self.device_mode = b"\x00\x00"
         self.preset_data = {1: bytearray(64*4-1)}
@@ -201,12 +199,16 @@ class KeyboardStatus:
         for i, b in enumerate(data):
             if i == 2:
                 row = b
+                if len(self.leds) <= row:
+                    self.leds.append([])
             if i == 3:
                 start = b
             if i == 4:
                 end = b
             if i >= 5 and ((i - 5) < ((end - start + 1) * 3)):
                 key = start + int((i - 5) / 3)
+                if len(self.leds[row]) <= key:
+                    self.leds[row].append([0,0,0])
                 self.leds[row][key][(i - 5) % 3] = b
 
     def print(self):
@@ -262,7 +264,7 @@ class KeyboardStatus:
 
 
 def onSetupRazer(self, request_type, request, value, index, length):
-    trace(f"request_type: {request_type} request: {request} value: {value} index: {index} length: {length}")
+    #trace(f"request_type: {request_type} request: {request} value: {value} index: {index} length: {length}")
     if (request_type & ch9.USB_TYPE_MASK) == ch9.USB_TYPE_CLASS:
         is_in = (request_type & ch9.USB_DIR_IN) == ch9.USB_DIR_IN
         recipient = request_type & ch9.USB_RECIP_MASK
@@ -272,7 +274,7 @@ def onSetupRazer(self, request_type, request, value, index, length):
                     # HID_FEATURE_REPORT (HID_FEATURE_REPORT + 1) / REPORT_NUMBER
                     if value == 0x0300:
                         if index != get_config("controlling_interface"):
-                            trace("WARNING Using invalid interface, probably not parsing HID descriptor")
+                            trace(f"WARNING Using invalid interface {index}, probably not parsing HID descriptor")
                         #trace("hid req set report")
                         buf = self.ep0.read(length)
                         #trace(buf)
@@ -313,7 +315,7 @@ def onSetupRazer(self, request_type, request, value, index, length):
                             KeyboardStatus().del_preset(self.razer_report["data"][0])
                             KeyboardStatus().print()
                         elif self.razer_report["command"] == Command.BIND_KEYS:
-                            version = self.razer_report["data"][0]
+                            preset = self.razer_report["data"][0]
                             from_key = self.razer_report["data"][1]
                             is_fn = self.razer_report["data"][2]
                             actuation_point = self.razer_report["data"][3]
@@ -322,7 +324,7 @@ def onSetupRazer(self, request_type, request, value, index, length):
                             bind_keys_type = self.razer_report["data"][5]
                             parameters_len = self.razer_report["data"][6]
                             parameters = self.razer_report["data"][7:7+parameters_len]
-                            trace(f"version: {version} from_key: {from_key} is_fn: {is_fn} actuation_point: {actuation_point} release_point: {release_point} bind_keys_type: {bind_keys_type} parameters: {parameters}")
+                            trace(f"preset: {preset} from_key: {from_key} is_fn: {is_fn} actuation_point: {actuation_point} release_point: {release_point} bind_keys_type: {bind_keys_type} parameters: {parameters}")
                         else:
                             trace(self.razer_report)
 
@@ -464,9 +466,9 @@ class Function1(functionfs.HIDFunction):
         )
 
     def onSetup(self, request_type, request, value, index, length):
-        trace(
-            f"request_type: {request_type} request: {request} value: {value} index: 1 length: {length}"
-        )
+        #trace(
+        #    f"request_type: {request_type} request: {request} value: {value} index: 1 length: {length}"
+        #)
         if not (
             "1" in get_config("allowed_interfaces").split(",")
             and onSetupRazer(self, request_type, request, value, 1, length)
@@ -491,6 +493,7 @@ class Function1(functionfs.HIDFunction):
 
 
     def onEnable(self):
+        super().onEnable()
         if False:
             trace("onEnable")
             super().onEnable()

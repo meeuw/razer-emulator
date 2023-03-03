@@ -263,134 +263,6 @@ class KeyboardStatus:
             del self.preset_data[preset]
 
 
-def onSetupRazer(self, request_type, request, value, index, length):
-    #trace(f"request_type: {request_type} request: {request} value: {value} index: {index} length: {length}")
-    if (request_type & ch9.USB_TYPE_MASK) == ch9.USB_TYPE_CLASS:
-        is_in = (request_type & ch9.USB_DIR_IN) == ch9.USB_DIR_IN
-        recipient = request_type & ch9.USB_RECIP_MASK
-        if request == hid.HID_REQ_SET_REPORT:
-            if not is_in:
-                if recipient == ch9.USB_RECIP_INTERFACE:
-                    # HID_FEATURE_REPORT (HID_FEATURE_REPORT + 1) / REPORT_NUMBER
-                    if value == 0x0300:
-                        if index != get_config("controlling_interface"):
-                            trace(f"WARNING Using invalid interface {index}, probably not parsing HID descriptor")
-                        #trace("hid req set report")
-                        buf = self.ep0.read(length)
-                        #trace(buf)
-                        header = struct.unpack(">BBHBBBB", buf[:8])
-
-                        command = Command(
-                            CommandType(command_class=header[5], command_id=header[6])
-                        )
-
-                        self.razer_report = {
-                            "status": Status(header[0]),
-                            "transaction_id": header[1],
-                            "remaining_packets": header[2],
-                            "protocol_type": header[3],
-                            "data_size": header[4],
-                            "command": command,
-                        }
-
-                        self.razer_report["data"] = buf[
-                            8 : 8 + self.razer_report["data_size"]
-                        ]
-                        self.razer_report["crc"] = buf[88]
-                        self.razer_report["reserved"] = buf[89]
-
-                        if self.razer_report["transaction_id"] != 0x1f:
-                            trace("WARNING Using invalid transaction_id")
-
-                        if self.razer_report["command"] == Command.TRINITY_EFFECT:
-                            KeyboardStatus().parse_trinity_effect(self.razer_report["data"])
-                            KeyboardStatus().print()
-                        elif self.razer_report["command"] == Command.SET_DEVICE_MODE:
-                            KeyboardStatus().set_device_mode(self.razer_report["data"])
-                            KeyboardStatus().print()
-                        elif self.razer_report["command"] == Command.SET_PRESET_DATA:
-                            KeyboardStatus().set_preset_data(self.razer_report["data"])
-                            KeyboardStatus().print()
-                        elif self.razer_report["command"] == Command.DEL_PRESET:
-                            KeyboardStatus().del_preset(self.razer_report["data"][0])
-                            KeyboardStatus().print()
-                        elif self.razer_report["command"] == Command.BIND_KEYS:
-                            preset = self.razer_report["data"][0]
-                            from_key = self.razer_report["data"][1]
-                            is_fn = self.razer_report["data"][2]
-                            actuation_point = self.razer_report["data"][3]
-                            release_point = self.razer_report["data"][4]
-                            # type (0 disable, 1 mouse, 2 keyboard, 10 multimedia, 11 double click, 12 fn)
-                            bind_keys_type = self.razer_report["data"][5]
-                            parameters_len = self.razer_report["data"][6]
-                            parameters = self.razer_report["data"][7:7+parameters_len]
-                            trace(f"preset: {preset} from_key: {from_key} is_fn: {is_fn} actuation_point: {actuation_point} release_point: {release_point} bind_keys_type: {bind_keys_type} parameters: {parameters}")
-                        else:
-                            trace(self.razer_report)
-
-                        return True
-        if request == hid.HID_REQ_GET_REPORT:
-            if is_in:
-                if recipient == ch9.USB_RECIP_INTERFACE:
-                    # HID_FEATURE_REPORT (HID_FEATURE_REPORT + 1) / REPORT_NUMBER
-                    if value == 0x0300:
-                        if index != get_config("controlling_interface"):
-                            trace("WARNING Using invalid interface, probably not parsing HID descriptor")
-                        trace("hid req get report")
-                        command = self.razer_report["command"]
-                        if command == Command.GET_SERIAL:
-                            data = get_config("serial").encode("utf-8")
-                        elif command == Command.GET_FIRMWARE_VERSION:
-                            data = b"\x01\x00"
-                        elif command == Command.READ_KBD_LAYOUT:
-                            data = b"\x01\x00"
-                        elif command == Command.GET_ACTIVE_PRESETS_LEN:
-                            data = bytes((len(KeyboardStatus().get_active_presets()),))
-                        elif command == Command.GET_DEVICE_MODE:
-                            data = KeyboardStatus().get_device_mode()
-                            print("get_device_mode", data)
-                        elif command == Command.GET_PRESET_DATA:
-                            data = KeyboardStatus().get_preset_data(self.razer_report["data"][0], self.razer_report["data"][2])
-                            print('get_preset_data', data, len(data), len(self.razer_report["data"]))
-                        elif command == Command.UNKNOWN058A:
-                            data = b"\x05"
-                        elif command == Command.GET_DATA_MAX_FREE:
-                            d_max = 458736
-                            d_free = 457336
-                            data = b"\xff\xff" + struct.pack(">II", d_max, d_free) + b"\x00\x00\x00\x00"
-                        elif command == Command.UNKNOWN0087:
-                            data = b"\x01"
-                        elif command == Command.GET_ACTIVE_PRESETS:
-                            active_presets = KeyboardStatus().get_active_presets()
-                            data = bytearray(65)
-                            if len(active_presets) > 1:
-                                data[0] = len(active_presets)
-                                for offset, preset in enumerate(active_presets):
-                                    data[offset + 1] = preset
-                        else:
-                            data = self.razer_report["data"]
-
-                        buf = struct.pack(
-                            ">BBHBBBB",
-                            Status.OK.value,  # status / start marker
-                            self.razer_report["transaction_id"],  # transaction_id / id
-                            0,  # remaining_packets
-                            0,  # protocol_type
-                            len(data),  # data_size / num params
-                            command.value.command_class,
-                            command.value.command_id,
-                        )
-
-                        buf += data
-                        buf += b"\x00" * (80 - len(data))
-                        buf += bytes([crc(buf)])
-                        buf += b"\x00"
-                        trace(len(buf))
-                        self.ep0.write(buf)
-                        return True
-    return False
-
-
 PROTOCOLS = {
     "keyboard": functionfs.hid.USB_INTERFACE_PROTOCOL_KEYBOARD,
     "mouse": functionfs.hid.USB_INTERFACE_PROTOCOL_MOUSE,
@@ -398,29 +270,152 @@ PROTOCOLS = {
 }
 
 
-class Function0(functionfs.HIDFunction):
-    """
-    Interface 0
-    """
-
+class RazerFunction(functionfs.HIDFunction):
     def __init__(self, **kw):
         super().__init__(
-            report_descriptor=bytes.fromhex(get_config("descriptor0")),
-            protocol=PROTOCOLS[get_config("protocol0")],
-            is_boot_device=get_config("is_boot_device0"),
-            in_report_max_length=get_config("in_report_max_length0"),
+            report_descriptor=bytes.fromhex(get_config(f"descriptor{self.interface_id}")),
+            protocol=PROTOCOLS[get_config(f"protocol{self.interface_id}")],
+            is_boot_device=get_config(f"is_boot_device{self.interface_id}"),
+            in_report_max_length=get_config(f"in_report_max_length{self.interface_id}"),
             full_speed_interval=1,
             high_speed_interval=1,
             **kw,
         )
+
+    def onSetupRazer(self, request_type, request, value, index, length):
+        #trace(f"request_type: {request_type} request: {request} value: {value} index: {index} length: {length}")
+        if (request_type & ch9.USB_TYPE_MASK) == ch9.USB_TYPE_CLASS:
+            is_in = (request_type & ch9.USB_DIR_IN) == ch9.USB_DIR_IN
+            recipient = request_type & ch9.USB_RECIP_MASK
+            if request == hid.HID_REQ_SET_REPORT:
+                if not is_in:
+                    if recipient == ch9.USB_RECIP_INTERFACE:
+                        # HID_FEATURE_REPORT (HID_FEATURE_REPORT + 1) / REPORT_NUMBER
+                        if value == 0x0300:
+                            if index != get_config("controlling_interface"):
+                                trace(f"WARNING Using invalid interface {index}, probably not parsing HID descriptor")
+                            #trace("hid req set report")
+                            buf = self.ep0.read(length)
+                            #trace(buf)
+                            header = struct.unpack(">BBHBBBB", buf[:8])
+
+                            command = Command(
+                                CommandType(command_class=header[5], command_id=header[6])
+                            )
+
+                            self.razer_report = {
+                                "status": Status(header[0]),
+                                "transaction_id": header[1],
+                                "remaining_packets": header[2],
+                                "protocol_type": header[3],
+                                "data_size": header[4],
+                                "command": command,
+                            }
+
+                            self.razer_report["data"] = buf[
+                                8 : 8 + self.razer_report["data_size"]
+                            ]
+                            self.razer_report["crc"] = buf[88]
+                            self.razer_report["reserved"] = buf[89]
+
+                            if self.razer_report["transaction_id"] != 0x1f:
+                                trace("WARNING Using invalid transaction_id")
+
+                            if self.razer_report["command"] == Command.TRINITY_EFFECT:
+                                KeyboardStatus().parse_trinity_effect(self.razer_report["data"])
+                                KeyboardStatus().print()
+                            elif self.razer_report["command"] == Command.SET_DEVICE_MODE:
+                                KeyboardStatus().set_device_mode(self.razer_report["data"])
+                                KeyboardStatus().print()
+                            elif self.razer_report["command"] == Command.SET_PRESET_DATA:
+                                KeyboardStatus().set_preset_data(self.razer_report["data"])
+                                KeyboardStatus().print()
+                            elif self.razer_report["command"] == Command.DEL_PRESET:
+                                KeyboardStatus().del_preset(self.razer_report["data"][0])
+                                KeyboardStatus().print()
+                            elif self.razer_report["command"] == Command.BIND_KEYS:
+                                preset = self.razer_report["data"][0]
+                                from_key = self.razer_report["data"][1]
+                                is_fn = self.razer_report["data"][2]
+                                actuation_point = self.razer_report["data"][3]
+                                release_point = self.razer_report["data"][4]
+                                # type (0 disable, 1 mouse, 2 keyboard, 10 multimedia, 11 double click, 12 fn)
+                                bind_keys_type = self.razer_report["data"][5]
+                                parameters_len = self.razer_report["data"][6]
+                                parameters = self.razer_report["data"][7:7+parameters_len]
+                                trace(f"preset: {preset} from_key: {from_key} is_fn: {is_fn} actuation_point: {actuation_point} release_point: {release_point} bind_keys_type: {bind_keys_type} parameters: {parameters}")
+                            else:
+                                trace(self.razer_report)
+
+                            return True
+            if request == hid.HID_REQ_GET_REPORT:
+                if is_in:
+                    if recipient == ch9.USB_RECIP_INTERFACE:
+                        # HID_FEATURE_REPORT (HID_FEATURE_REPORT + 1) / REPORT_NUMBER
+                        if value == 0x0300:
+                            if index != get_config("controlling_interface"):
+                                trace("WARNING Using invalid interface, probably not parsing HID descriptor")
+                            trace("hid req get report")
+                            command = self.razer_report["command"]
+                            if command == Command.GET_SERIAL:
+                                data = get_config("serial").encode("utf-8")
+                            elif command == Command.GET_FIRMWARE_VERSION:
+                                data = b"\x01\x00"
+                            elif command == Command.READ_KBD_LAYOUT:
+                                data = b"\x01\x00"
+                            elif command == Command.GET_ACTIVE_PRESETS_LEN:
+                                data = bytes((len(KeyboardStatus().get_active_presets()),))
+                            elif command == Command.GET_DEVICE_MODE:
+                                data = KeyboardStatus().get_device_mode()
+                                print("get_device_mode", data)
+                            elif command == Command.GET_PRESET_DATA:
+                                data = KeyboardStatus().get_preset_data(self.razer_report["data"][0], self.razer_report["data"][2])
+                                print('get_preset_data', data, len(data), len(self.razer_report["data"]))
+                            elif command == Command.UNKNOWN058A:
+                                data = b"\x05"
+                            elif command == Command.GET_DATA_MAX_FREE:
+                                d_max = 458736
+                                d_free = 457336
+                                data = b"\xff\xff" + struct.pack(">II", d_max, d_free) + b"\x00\x00\x00\x00"
+                            elif command == Command.UNKNOWN0087:
+                                data = b"\x01"
+                            elif command == Command.GET_ACTIVE_PRESETS:
+                                active_presets = KeyboardStatus().get_active_presets()
+                                data = bytearray(65)
+                                if len(active_presets) > 1:
+                                    data[0] = len(active_presets)
+                                    for offset, preset in enumerate(active_presets):
+                                        data[offset + 1] = preset
+                            else:
+                                data = self.razer_report["data"]
+
+                            buf = struct.pack(
+                                ">BBHBBBB",
+                                Status.OK.value,  # status / start marker
+                                self.razer_report["transaction_id"],  # transaction_id / id
+                                0,  # remaining_packets
+                                0,  # protocol_type
+                                len(data),  # data_size / num params
+                                command.value.command_class,
+                                command.value.command_id,
+                            )
+
+                            buf += data
+                            buf += b"\x00" * (80 - len(data))
+                            buf += bytes([crc(buf)])
+                            buf += b"\x00"
+                            trace(len(buf))
+                            self.ep0.write(buf)
+                            return True
+        return False
 
     def onSetup(self, request_type, request, value, index, length):
         #trace(
         #    f"request_type: {request_type} request: {request} value: {value} index: 0 length: {length}"
         #)
         if not (
-            "0" in get_config("allowed_interfaces").split(",")
-            and onSetupRazer(self, request_type, request, value, 0, length)
+            str(self.interface_id) in get_config("allowed_interfaces").split(",")
+            and self.onSetupRazer(request_type, request, value, self.interface_id, length)
         ):
             super().onSetup(
                 request_type,
@@ -429,6 +424,7 @@ class Function0(functionfs.HIDFunction):
                 index,
                 length,
             )
+
 
 class HIDINEndpoint(functionfs.EndpointINFile):
     """
@@ -447,39 +443,6 @@ class HIDINEndpoint(functionfs.EndpointINFile):
         # Resubmit the transfer. We did not change its buffer, so the
         # mouse movement will carry on identically.
         return True
-
-
-class Function1(functionfs.HIDFunction):
-    """
-    Interface 1
-    """
-
-    def __init__(self, **kw):
-        super().__init__(
-            report_descriptor=bytes.fromhex(get_config("descriptor1")),
-            protocol=PROTOCOLS[get_config("protocol1")],
-            is_boot_device=get_config("is_boot_device1"),
-            in_report_max_length=get_config("in_report_max_length1"),
-            full_speed_interval=1,
-            high_speed_interval=1,
-            **kw,
-        )
-
-    def onSetup(self, request_type, request, value, index, length):
-        #trace(
-        #    f"request_type: {request_type} request: {request} value: {value} index: 1 length: {length}"
-        #)
-        if not (
-            "1" in get_config("allowed_interfaces").split(",")
-            and onSetupRazer(self, request_type, request, value, 1, length)
-        ):
-            super().onSetup(
-                request_type,
-                request,
-                value,
-                index,
-                length,
-            )
 
 
     def getEndpointClass(self, is_in, descriptor):
@@ -511,106 +474,6 @@ class Function1(functionfs.HIDFunction):
             data2[4] = 0x0
             self.getEndpoint(1).submit(
                 (data1, data2)
-            )
-
-
-class Function2(functionfs.HIDFunction):
-    """
-    Interface 2
-    """
-
-    def __init__(self, **kw):
-        super().__init__(
-            report_descriptor=bytes.fromhex(get_config("descriptor2")),
-            protocol=PROTOCOLS[get_config("protocol2")],
-            is_boot_device=get_config("is_boot_device2"),
-            in_report_max_length=get_config("in_report_max_length2"),
-            full_speed_interval=1,
-            high_speed_interval=1,
-            **kw,
-        )
-
-    def onSetup(self, request_type, request, value, index, length):
-        #trace(
-        #    f"request_type: {request_type} request: {request} value: {value} index: 2 length: {length}"
-        #)
-        if not (
-            "2" in get_config("allowed_interfaces").split(",")
-            and onSetupRazer(self, request_type, request, value, 2, length)
-        ):
-            super().onSetup(
-                request_type,
-                request,
-                value,
-                index,
-                length,
-            )
-
-
-class Function3(functionfs.HIDFunction):
-    """
-    Interface 3
-    """
-
-    def __init__(self, **kw):
-        self.razer_report = None
-        super().__init__(
-            report_descriptor=bytes.fromhex(get_config("descriptor3")),
-            protocol=PROTOCOLS[get_config("protocol3")],
-            is_boot_device=get_config("is_boot_device3"),
-            in_report_max_length=get_config("in_report_max_length3"),
-            full_speed_interval=1,
-            high_speed_interval=1,
-            **kw,
-        )
-
-    def onSetup(self, request_type, request, value, index, length):
-        #trace(
-        #    f"request_type: {request_type} request: {request} value: {value} index: 3 length: {length}"
-        #)
-        if not (
-            "3" in get_config("allowed_interfaces").split(",")
-            and onSetupRazer(self, request_type, request, value, 3, length)
-        ):
-            super().onSetup(
-                request_type,
-                request,
-                value,
-                index,
-                length,
-            )
-
-
-class Function4(functionfs.HIDFunction):
-    """
-    Interface 4
-    """
-
-    def __init__(self, **kw):
-        super().__init__(
-            report_descriptor=bytes.fromhex(get_config("descriptor4")),
-            protocol=PROTOCOLS[get_config("protocol4")],
-            is_boot_device=get_config("is_boot_device4"),
-            in_report_max_length=get_config("in_report_max_length4"),
-            full_speed_interval=1,
-            high_speed_interval=1,
-            **kw,
-        )
-
-    def onSetup(self, request_type, request, value, index, length):
-        #trace(
-        #    f"request_type: {request_type} request: {request} value: {value} index: 4 length: {length}"
-        #)
-        if not (
-            "4" in get_config("allowed_interfaces").split(",")
-            and onSetupRazer(self, request_type, request, value, 4, length)
-        ):
-            super().onSetup(
-                request_type,
-                request,
-                value,
-                index,
-                length,
             )
 
 
@@ -647,40 +510,17 @@ def main():
     get_config.device = args.device
 
     function_list = []
-    if get_config("descriptor0", ""):
 
-        def get_config_function_subprocess0(**kw):
-            return ConfigFunctionFFSSubprocess(getFunction=Function0, **kw)
+    for interface in range(5):
+        if get_config(f"descriptor{interface}", ""):
+            class Function(RazerFunction):
+                interface_id = interface
 
-        function_list.append(get_config_function_subprocess0)
-
-    if get_config("descriptor1", ""):
-
-        def get_config_function_subprocess1(**kw):
-            return ConfigFunctionFFSSubprocess(getFunction=Function1, **kw)
-
-        function_list.append(get_config_function_subprocess1)
-
-    if get_config("descriptor2", ""):
-
-        def get_config_function_subprocess2(**kw):
-            return ConfigFunctionFFSSubprocess(getFunction=Function2, **kw)
-
-        function_list.append(get_config_function_subprocess2)
-
-    if get_config("descriptor3", ""):
-
-        def get_config_function_subprocess3(**kw):
-            return ConfigFunctionFFSSubprocess(getFunction=Function3, **kw)
-
-        function_list.append(get_config_function_subprocess3)
-
-    if get_config("descriptor4", ""):
-
-        def get_config_function_subprocess4(**kw):
-            return ConfigFunctionFFSSubprocess(getFunction=Function4, **kw)
-
-        function_list.append(get_config_function_subprocess4)
+            def get_function(cls):
+                def get_config_function_subprocess(**kw):
+                    return ConfigFunctionFFSSubprocess(getFunction=cls, **kw)
+                return get_config_function_subprocess
+            function_list.append(get_function(Function))
 
     with GadgetSubprocessManager(
         args=args,

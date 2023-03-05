@@ -191,6 +191,11 @@ class KeyboardStatus:
         self.last_print = ""
         self.device_mode = b"\x00\x00"
         self.preset_data = {1: bytearray(64*4-1)}
+        self.unhandled = []
+
+    def unhandled_command(self, command):
+        if not command in self.unhandled:
+            self.unhandled.append(command)
 
     def parse_trinity_effect(self, data):
         row = 0
@@ -220,9 +225,11 @@ class KeyboardStatus:
             for key in row:
                 line += f"{key[0]:02X}{key[1]:02X}{key[2]:02X}"
             lines += f"{line}\n"
+        for unhandled in self.unhandled:
+            lines += f"Unhandled: {hex(unhandled.value.command_class)} {hex(unhandled.value.command_id)}\n"
 
         if self.last_print != lines:
-            print(lines)
+            trace(lines)
             self.last_print = lines
 
 
@@ -234,7 +241,7 @@ class KeyboardStatus:
         return self.device_mode
 
     def set_preset_data(self, preset_data):
-        print('set_preset_data', preset_data.hex())
+        trace('set_preset_data', preset_data.hex())
         preset = preset_data[0]
         offset = preset_data[2]
         size = preset_data[4]
@@ -345,6 +352,7 @@ class RazerFunction(functionfs.HIDFunction):
                                 parameters = self.razer_report["data"][7:7+parameters_len]
                                 trace(f"preset: {preset} from_key: {from_key} is_fn: {is_fn} actuation_point: {actuation_point} release_point: {release_point} bind_keys_type: {bind_keys_type} parameters: {parameters}")
                             else:
+                                KeyboardStatus().unhandled_command(self.razer_report["command"])
                                 trace(self.razer_report)
 
                             return True
@@ -367,10 +375,8 @@ class RazerFunction(functionfs.HIDFunction):
                                 data = bytes((len(KeyboardStatus().get_active_presets()),))
                             elif command == Command.GET_DEVICE_MODE:
                                 data = KeyboardStatus().get_device_mode()
-                                print("get_device_mode", data)
                             elif command == Command.GET_PRESET_DATA:
                                 data = KeyboardStatus().get_preset_data(self.razer_report["data"][0], self.razer_report["data"][2])
-                                print('get_preset_data', data, len(data), len(self.razer_report["data"]))
                             elif command == Command.UNKNOWN058A:
                                 data = b"\x05"
                             elif command == Command.GET_DATA_MAX_FREE:
@@ -425,6 +431,37 @@ class RazerFunction(functionfs.HIDFunction):
                 length,
             )
 
+    def getEndpointClass(self, is_in, descriptor):
+        """
+        Tall HIDFunction that we want it to use our custom IN endpoint class
+        for our only IN endpoint.
+        """
+        if is_in:
+            return HIDINEndpoint
+        return super().getEndpointClass(is_in, descriptor)
+
+
+    def onEnable(self):
+        super().onEnable()
+        return
+        trace("onEnable")
+        super().onEnable()
+        data1 = bytearray(23)
+        data1[0] = 0x07
+        data1[1] = 0x16 # Y
+        data1[2] = 0xff
+        data1[3] = 0x3b # FN
+        data1[4] = 0xff
+        data2 = bytearray(23)
+        data2[0] = 0x07
+        data2[1] = 0x16
+        data2[2] = 0x0
+        data2[3] = 0x3b
+        data2[4] = 0x0
+        self.getEndpoint(1).submit(
+            (data1, data2)
+        )
+
 
 class HIDINEndpoint(functionfs.EndpointINFile):
     """
@@ -445,36 +482,6 @@ class HIDINEndpoint(functionfs.EndpointINFile):
         return True
 
 
-    def getEndpointClass(self, is_in, descriptor):
-        """
-        Tall HIDFunction that we want it to use our custom IN endpoint class
-        for our only IN endpoint.
-        """
-        if is_in:
-            return HIDINEndpoint
-        return super().getEndpointClass(is_in, descriptor)
-
-
-    def onEnable(self):
-        super().onEnable()
-        if False:
-            trace("onEnable")
-            super().onEnable()
-            data1 = bytearray(23)
-            data1[0] = 0x07
-            data1[1] = 0x16 # Y
-            data1[2] = 0xff
-            data1[3] = 0x3b # FN
-            data1[4] = 0xff
-            data2 = bytearray(23)
-            data2[0] = 0x07
-            data2[1] = 0x16
-            data2[2] = 0x0
-            data2[3] = 0x3b
-            data2[4] = 0x0
-            self.getEndpoint(1).submit(
-                (data1, data2)
-            )
 
 
 def get_config(key, use_default=None):

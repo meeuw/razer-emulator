@@ -107,7 +107,14 @@ class Command(Enum):
     UNKNOWN0502 = CommandType(command_class=0x05, command_id=0x02) # write preset / start up
     UNKNOWN058A = CommandType(command_class=0x05, command_id=0x8A) # start up (amount of available presets?)
 
+    UNKNOWN0603 = CommandType(command_class=0x06, command_id=0x03) # macro (rename)
+    UNKNOWN0608 = CommandType(command_class=0x06, command_id=0x08) # macro
+    UNKNOWN0609 = CommandType(command_class=0x06, command_id=0x09) # macro
+    UNKNOWN060C = CommandType(command_class=0x06, command_id=0x0C) # macro
     UNKNOWN0680 = CommandType(command_class=0x06, command_id=0x80) # delete preset / start up
+
+    UNKNOWN060A = CommandType(command_class=0x06, command_id=0x0A) # device reset
+    UNKNOWN068A = CommandType(command_class=0x06, command_id=0x8A) # device reset
 
     UNKNOWN0F80 = CommandType(command_class=0x0F, command_id=0x80) # synapse quit / write preset
     UNKNOWN0F82 = CommandType(command_class=0x0F, command_id=0x82) # synapse quit / write preset
@@ -346,7 +353,16 @@ class RazerFunction(functionfs.HIDFunction):
                                 is_fn = self.razer_report["data"][2]
                                 actuation_point = self.razer_report["data"][3]
                                 release_point = self.razer_report["data"][4]
-                                # type (0 disable, 1 mouse, 2 keyboard, 10 multimedia, 11 double click, 12 fn)
+                                # type
+                                # 0 disable
+                                # 1 mouse
+                                # 2 keyboard
+                                # 3 macro (play once)
+                                # 4 macro (play while assigned key is pressed)
+                                # 5 macro (toggle continuous playback)
+                                # 10 multimedia
+                                # 11 double click
+                                # 12 fn
                                 bind_keys_type = self.razer_report["data"][5]
                                 parameters_len = self.razer_report["data"][6]
                                 parameters = self.razer_report["data"][7:7+parameters_len]
